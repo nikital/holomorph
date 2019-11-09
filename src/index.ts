@@ -138,34 +138,41 @@ function drawGraphFull () {
     dst.graph.stroke ()
 
     // Grid
-    const gridStart = -1,
-    gridEnd = 1,
-    step = 0.1
+    const resolution = 50 / srcScale,
+    steps = 10,
+    gridWidth = srcWidth/srcScale/2,
+    gridHeight = srcHeight/srcScale/2,
+    gridElementsX = Math.floor(gridWidth / resolution)+1,
+    gridElementsY = Math.floor(gridHeight / resolution)+1
 
     src.graph.beginPath()
     dst.graph.beginPath()
 
-    for (let x = gridStart; x < gridEnd; x += step) {
-        const z = complex (x, gridStart),
+    for (let x = -gridElementsX; x <= gridElementsX; x++) {
+        src.graph.moveTo (x*resolution, -gridElementsY*resolution)
+        src.graph.lineTo (x*resolution, gridElementsY*resolution)
+    }
+    for (let y = -gridElementsY; y <= gridElementsY; y++) {
+        src.graph.moveTo (-gridElementsX*resolution, y*resolution)
+        src.graph.lineTo (gridElementsX*resolution, y*resolution)
+    }
+    for (let x = -gridElementsX; x <= gridElementsX; x++) {
+        const z = complex (x*resolution, -gridElementsY*resolution),
         fz = state.f.evaluate({z})
-        src.graph.moveTo (z.re, z.im)
         dst.graph.moveTo (fz.re, fz.im)
-        for (let y = gridStart + step; y < gridEnd; y += step) {
-            const z = complex (x, y),
+        for (let y = -gridElementsY*steps; y <= gridElementsY*steps; y++) {
+            const z = complex (x*resolution, y*resolution/steps),
             fz = state.f.evaluate({z})
-            src.graph.lineTo (z.re, z.im)
             dst.graph.lineTo (fz.re, fz.im)
         }
     }
-    for (let y = gridStart; y < gridEnd; y += step) {
-        const z = complex (gridStart, y),
+    for (let y = -gridElementsY; y <= gridElementsY; y++) {
+        const z = complex (-gridElementsX*resolution, y*resolution),
         fz = state.f.evaluate({z})
-        src.graph.moveTo (z.re, z.im)
         dst.graph.moveTo (fz.re, fz.im)
-        for (let x = gridStart + step; x < gridEnd; x += step) {
-            const z = complex (x, y),
+        for (let x = -gridElementsX*steps; x <= gridElementsX*steps; x++) {
+            const z = complex (x*resolution/steps, y*resolution),
             fz = state.f.evaluate({z})
-            src.graph.lineTo (z.re, z.im)
             dst.graph.lineTo (fz.re, fz.im)
         }
     }
