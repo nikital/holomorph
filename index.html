@@ -12,9 +12,6 @@
          width: 100vw;
          height: 100vh;
      }
-     .control {
-         grid-column: 1/3;
-     }
      canvas {
          width: 100%;
          height: 100%;
@@ -22,6 +19,13 @@
      #src {
          grid-column: 1/3;
          grid-row: 1/3;
+     }
+     .zoom {
+         margin: 4px 10px 0 0;
+     }
+     .zoom button {
+         margin-top: 3px;
+         width: 100%;
      }
      #zoom-src {
          grid-column: 2/3;
@@ -39,6 +43,7 @@
          grid-column: 1/2;
          grid-row: 1/2;
          width: min-content;
+         margin: 10px;
      }
      #func-form {
          grid-column: 3/4;
