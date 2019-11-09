@@ -36,7 +36,24 @@ function initState(fRaw: string, scaleSrc: number, scaleDst: number): State {
     }
 }
 
-let state: State = initState ("e^z", 5, 80)
+let state: State = initState ("e^z", 5, 50)
+
+interface Style {
+    style: string
+    width: number
+}
+
+function style(style: string, width: number): Style {
+    return {style, width}
+}
+
+const STYLE = {
+    axis: style("#555", 1),
+    grid: style("#CCC", 1),
+    line: style("black", 2),
+    dUp: style("red", 3),
+    dRight: style("green", 3),
+}
 
 function initCanvas (id: string): Graph {
     const compElem = document.getElementById (id) as HTMLCanvasElement,
@@ -85,7 +102,7 @@ interface Scale {
     dstScale: number
 }
 
-function setTransform(): Scale {
+function setTransform () {
     const srcWidth = src.graph.canvas.width,
     srcHeight = src.graph.canvas.height,
     dstWidth = dst.graph.canvas.width,
@@ -105,39 +122,40 @@ function setTransform(): Scale {
     dst.graph.lineWidth = 1/dstScale
     dst.comp.setTransform(dstScale, 0, 0, -dstScale, dstOffsetX, dstOffsetY)
     dst.comp.lineWidth = 1/dstScale
+}
 
-    return {srcScale, dstScale}
+function setStyle (s: Style) {
+    const srcWidth = src.graph.canvas.width,
+    dstWidth = dst.graph.canvas.width,
+    srcScale = srcWidth / state.scaleSrc,
+    dstScale = dstWidth / state.scaleDst;
+
+    [src.comp, src.graph, dst.comp, dst.graph].forEach((ctx) => {
+        ctx.strokeStyle = s.style
+    })
+    src.comp.lineWidth = s.width / srcScale
+    src.graph.lineWidth = s.width / srcScale
+    dst.comp.lineWidth = s.width / dstScale
+    dst.graph.lineWidth = s.width / dstScale
 }
 
 function drawGraphFull () {
     const srcWidth = src.graph.canvas.width,
     srcHeight = src.graph.canvas.height,
     dstWidth = dst.graph.canvas.width,
-    dstHeight = dst.graph.canvas.height
+    dstHeight = dst.graph.canvas.height,
+    srcScale = srcWidth / state.scaleSrc,
+    dstScale = dstWidth / state.scaleDst
 
     src.graph.setTransform(1, 0, 0, 1, 0, 0)
     dst.graph.setTransform(1, 0, 0, 1, 0, 0)
     src.graph.clearRect (0, 0, srcWidth, srcHeight)
     dst.graph.clearRect (0, 0, dstWidth, dstWidth)
 
-    const {srcScale, dstScale} = setTransform ()
-
-    // Axis
-    src.graph.beginPath ()
-    src.graph.moveTo (-srcWidth/srcScale, 0)
-    src.graph.lineTo (srcWidth/srcScale, 0)
-    src.graph.moveTo (0, -srcHeight/srcScale)
-    src.graph.lineTo (0, srcHeight/srcScale)
-    src.graph.stroke ()
-
-    dst.graph.beginPath ()
-    dst.graph.moveTo (-dstWidth/dstScale, 0)
-    dst.graph.lineTo (dstWidth/dstScale, 0)
-    dst.graph.moveTo (0, -dstHeight/dstScale)
-    dst.graph.lineTo (0, dstHeight/dstScale)
-    dst.graph.stroke ()
+    setTransform ()
 
     // Grid
+    setStyle(STYLE.grid)
     const resolution = 50 / srcScale,
     steps = 10,
     gridWidth = srcWidth/srcScale/2,
@@ -179,7 +197,25 @@ function drawGraphFull () {
     src.graph.stroke()
     dst.graph.stroke()
 
+    // Axis
+    setStyle(STYLE.axis)
+    src.graph.beginPath ()
+    src.graph.moveTo (-srcWidth/srcScale, 0)
+    src.graph.lineTo (srcWidth/srcScale, 0)
+    src.graph.moveTo (0, -srcHeight/srcScale)
+    src.graph.lineTo (0, srcHeight/srcScale)
+    src.graph.stroke ()
+
+    dst.graph.beginPath ()
+    dst.graph.moveTo (-dstWidth/dstScale, 0)
+    dst.graph.lineTo (dstWidth/dstScale, 0)
+    dst.graph.moveTo (0, -dstHeight/dstScale)
+    dst.graph.lineTo (0, dstHeight/dstScale)
+    dst.graph.stroke ()
+
+
     // Inputs
+    setStyle(STYLE.line)
     if (state.inputs) {
         src.graph.beginPath ()
         state.inputs.forEach((z, i) => {
@@ -217,6 +253,7 @@ function drawGraphLast ()
         return
 
     setTransform ()
+    setStyle(STYLE.line)
     const z1 = state.inputs[state.inputs.length-2],
     z2 = state.inputs[state.inputs.length-1],
     fz1 = state.outputs[state.outputs.length-2],
@@ -256,25 +293,33 @@ function composite () {
 
     if (state.derivative)
     {
+        const z1 = state.inputs[state.inputs.length - 1] as math.Complex,
+        z2 = add(z1, complex(1, 0)) as math.Complex,
+        z3 = add(z1, complex(0, 1)) as math.Complex
         const fz1 = state.outputs[state.outputs.length - 1] as math.Complex,
         fz2 = add(fz1, state.derivative) as math.Complex,
         fz3 = add(fz1, multiply(state.derivative, complex(0, 1))) as math.Complex
+
+        setStyle(STYLE.dUp)
+        src.comp.beginPath ()
+        src.comp.moveTo (z1.re, z1.im)
+        src.comp.lineTo (z2.re, z2.im)
+        src.comp.stroke ()
         dst.comp.beginPath ()
         dst.comp.moveTo (fz1.re, fz1.im)
         dst.comp.lineTo (fz2.re, fz2.im)
+        dst.comp.stroke ()
+
+        setStyle(STYLE.dRight)
+        src.comp.beginPath ()
+        src.comp.moveTo (z1.re, z1.im)
+        src.comp.lineTo (z3.re, z3.im)
+        src.comp.stroke ()
+        dst.comp.beginPath ()
         dst.comp.moveTo (fz1.re, fz1.im)
         dst.comp.lineTo (fz3.re, fz3.im)
         dst.comp.stroke ()
 
-        const z1 = state.inputs[state.inputs.length - 1] as math.Complex,
-        z2 = add(z1, complex(1, 0)) as math.Complex,
-        z3 = add(z1, complex(0, 1)) as math.Complex
-        src.comp.beginPath ()
-        src.comp.moveTo (z1.re, z1.im)
-        src.comp.lineTo (z2.re, z2.im)
-        src.comp.moveTo (z1.re, z1.im)
-        src.comp.lineTo (z3.re, z3.im)
-        src.comp.stroke ()
     }
 }
 
@@ -322,7 +367,7 @@ window.onresize = () => {
     resizeDebounce = setTimeout(() => {
         resizeDebounce = null
         resize ()
-    }, 400)
+    }, 100)
 }
 
 function resize () {
