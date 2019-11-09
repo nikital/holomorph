@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "@types/mathjs": "^6.0.2",
+    "copy-webpack-plugin": "^5.0.5",
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.7.2",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
+  },
+  "dependencies": {
+    "mathjs": "^6.2.3"
+  }
+}
