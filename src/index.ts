@@ -80,7 +80,12 @@ function addInput (z: math.Complex | null) {
     state.derivative = dz
 }
 
-function drawGraphFull () {
+interface Scale {
+    srcScale: number
+    dstScale: number
+}
+
+function setTransform(): Scale {
     const srcWidth = src.graph.canvas.width,
     srcHeight = src.graph.canvas.height,
     dstWidth = dst.graph.canvas.width,
@@ -92,23 +97,44 @@ function drawGraphFull () {
     srcScale = srcWidth / state.scaleSrc,
     dstScale = dstWidth / state.scaleDst
 
-    // Clear
+    src.graph.setTransform(srcScale, 0, 0, srcScale, srcOffsetX, srcOffsetY)
+    src.graph.lineWidth = 1/srcScale
+    src.comp.setTransform(srcScale, 0, 0, srcScale, srcOffsetX, srcOffsetY)
+    src.comp.lineWidth = 1/srcScale
+    dst.graph.setTransform(dstScale, 0, 0, dstScale, dstOffsetX, dstOffsetY)
+    dst.graph.lineWidth = 1/dstScale
+    dst.comp.setTransform(dstScale, 0, 0, dstScale, dstOffsetX, dstOffsetY)
+    dst.comp.lineWidth = 1/dstScale
+
+    return {srcScale, dstScale}
+}
+
+function drawGraphFull () {
+    const srcWidth = src.graph.canvas.width,
+    srcHeight = src.graph.canvas.height,
+    dstWidth = dst.graph.canvas.width,
+    dstHeight = dst.graph.canvas.height
+
+    src.graph.setTransform(1, 0, 0, 1, 0, 0)
+    dst.graph.setTransform(1, 0, 0, 1, 0, 0)
     src.graph.clearRect (0, 0, srcWidth, srcHeight)
     dst.graph.clearRect (0, 0, dstWidth, dstWidth)
 
+    const {srcScale, dstScale} = setTransform ()
+
     // Axis
     src.graph.beginPath ()
-    src.graph.moveTo (0, srcOffsetY)
-    src.graph.lineTo (srcWidth, srcOffsetY)
-    src.graph.moveTo (srcOffsetX, 0)
-    src.graph.lineTo (srcOffsetX, srcHeight)
+    src.graph.moveTo (-srcWidth/srcScale, 0)
+    src.graph.lineTo (srcWidth/srcScale, 0)
+    src.graph.moveTo (0, -srcHeight/srcScale)
+    src.graph.lineTo (0, srcHeight/srcScale)
     src.graph.stroke ()
 
     dst.graph.beginPath ()
-    dst.graph.moveTo (0, dstOffsetY)
-    dst.graph.lineTo (dstWidth, dstOffsetY)
-    dst.graph.moveTo (dstOffsetX, 0)
-    dst.graph.lineTo (dstOffsetX, dstHeight)
+    dst.graph.moveTo (-dstWidth/dstScale, 0)
+    dst.graph.lineTo (dstWidth/dstScale, 0)
+    dst.graph.moveTo (0, -dstHeight/dstScale)
+    dst.graph.lineTo (0, dstHeight/dstScale)
     dst.graph.stroke ()
 
     // Grid
@@ -122,25 +148,25 @@ function drawGraphFull () {
     for (let x = gridStart; x < gridEnd; x += step) {
         const z = complex (x, gridStart),
         fz = state.f.evaluate({z})
-        src.graph.moveTo (z.re * srcScale + srcOffsetX, z.im * srcScale + srcOffsetY)
-        dst.graph.moveTo (fz.re * dstScale + dstOffsetX, fz.im * dstScale + dstOffsetY)
+        src.graph.moveTo (z.re, z.im)
+        dst.graph.moveTo (fz.re, fz.im)
         for (let y = gridStart + step; y < gridEnd; y += step) {
             const z = complex (x, y),
             fz = state.f.evaluate({z})
-            src.graph.lineTo (z.re * srcScale + srcOffsetX, z.im * srcScale + srcOffsetY)
-            dst.graph.lineTo (fz.re * dstScale + dstOffsetX, fz.im * dstScale + dstOffsetY)
+            src.graph.lineTo (z.re, z.im)
+            dst.graph.lineTo (fz.re, fz.im)
         }
     }
     for (let y = gridStart; y < gridEnd; y += step) {
         const z = complex (gridStart, y),
         fz = state.f.evaluate({z})
-        src.graph.moveTo (z.re * srcScale + srcOffsetX, z.im * srcScale + srcOffsetY)
-        dst.graph.moveTo (fz.re * dstScale + dstOffsetX, fz.im * dstScale + dstOffsetY)
+        src.graph.moveTo (z.re, z.im)
+        dst.graph.moveTo (fz.re, fz.im)
         for (let x = gridStart + step; x < gridEnd; x += step) {
             const z = complex (x, y),
             fz = state.f.evaluate({z})
-            src.graph.lineTo (z.re * srcScale + srcOffsetX, z.im * srcScale + srcOffsetY)
-            dst.graph.lineTo (fz.re * dstScale + dstOffsetX, fz.im * dstScale + dstOffsetY)
+            src.graph.lineTo (z.re, z.im)
+            dst.graph.lineTo (fz.re, fz.im)
         }
     }
     src.graph.stroke()
@@ -153,9 +179,9 @@ function drawGraphFull () {
             if (z == null) {
                 return
             } else if (i == 0 || state.inputs[i-1] == null) {
-                src.graph.moveTo (z.re * srcScale + srcOffsetX, z.im * srcScale + srcOffsetY)
+                src.graph.moveTo (z.re, z.im)
             } else {
-                src.graph.lineTo (z.re * srcScale + srcOffsetX, z.im * srcScale + srcOffsetY)
+                src.graph.lineTo (z.re, z.im)
             }
         })
         src.graph.stroke ()
@@ -167,9 +193,9 @@ function drawGraphFull () {
             if (fz == null) {
                 return
             } else if (i == 0 || state.outputs[i-1] == null) {
-                dst.graph.moveTo (fz.re * dstScale + dstOffsetX, fz.im * dstScale + dstOffsetY)
+                dst.graph.moveTo (fz.re, fz.im)
             } else {
-                dst.graph.lineTo (fz.re * dstScale + dstOffsetX, fz.im * dstScale + dstOffsetY)
+                dst.graph.lineTo (fz.re, fz.im)
             }
         })
         dst.graph.stroke ()
@@ -180,19 +206,10 @@ function drawGraphFull () {
 
 function drawGraphLast ()
 {
-    const srcWidth = src.graph.canvas.width,
-    srcHeight = src.graph.canvas.height,
-    dstWidth = dst.graph.canvas.width,
-    dstHeight = dst.graph.canvas.height,
-    srcOffsetX = srcWidth >> 1,
-    srcOffsetY = srcHeight >> 1,
-    dstOffsetX = dstWidth >> 1,
-    dstOffsetY = dstHeight >> 1,
-    srcScale = srcWidth / state.scaleSrc,
-    dstScale = dstWidth / state.scaleDst
-
     if (state.inputs.length < 2)
         return
+
+    setTransform ()
     const z1 = state.inputs[state.inputs.length-2],
     z2 = state.inputs[state.inputs.length-1],
     fz1 = state.outputs[state.outputs.length-2],
@@ -200,14 +217,14 @@ function drawGraphLast ()
 
     if (z1 != null && z2 != null) {
         src.graph.beginPath ()
-        src.graph.moveTo (z1.re * srcScale + srcOffsetX, z1.im * srcScale + srcOffsetY)
-        src.graph.lineTo (z2.re * srcScale + srcOffsetX, z2.im * srcScale + srcOffsetY)
+        src.graph.moveTo (z1.re, z1.im)
+        src.graph.lineTo (z2.re, z2.im)
         src.graph.stroke ()
     }
     if (fz1 != null && fz2 != null) {
         dst.graph.beginPath ()
-        dst.graph.moveTo (fz1.re * dstScale + dstOffsetX, fz1.im * dstScale + dstOffsetY)
-        dst.graph.lineTo (fz2.re * dstScale + dstOffsetX, fz2.im * dstScale + dstOffsetY)
+        dst.graph.moveTo (fz1.re, fz1.im)
+        dst.graph.lineTo (fz2.re, fz2.im)
         dst.graph.stroke ()
     }
 
@@ -218,18 +235,17 @@ function composite () {
     const srcWidth = src.graph.canvas.width,
     srcHeight = src.graph.canvas.height,
     dstWidth = dst.graph.canvas.width,
-    dstHeight = dst.graph.canvas.height,
-    srcOffsetX = srcWidth >> 1,
-    srcOffsetY = srcHeight >> 1,
-    dstOffsetX = dstWidth >> 1,
-    dstOffsetY = dstHeight >> 1,
-    srcScale = srcWidth / state.scaleSrc,
-    dstScale = dstWidth / state.scaleDst
+    dstHeight = dst.graph.canvas.height
 
+    src.comp.setTransform(1, 0, 0, 1, 0, 0)
+    dst.comp.setTransform(1, 0, 0, 1, 0, 0)
     src.comp.clearRect (0, 0, srcWidth, srcHeight)
-    src.comp.drawImage (src.graph.canvas, 0, 0)
     dst.comp.clearRect (0, 0, dstWidth, dstHeight)
+
+    src.comp.drawImage (src.graph.canvas, 0, 0)
     dst.comp.drawImage (dst.graph.canvas, 0, 0)
+
+    setTransform ()
 
     if (state.derivative)
     {
@@ -237,20 +253,20 @@ function composite () {
         fz2 = add(fz1, state.derivative) as math.Complex,
         fz3 = add(fz1, multiply(state.derivative, complex(0, 1))) as math.Complex
         dst.comp.beginPath ()
-        dst.comp.moveTo (fz1.re * dstScale + dstOffsetX, fz1.im * dstScale + dstOffsetY)
-        dst.comp.lineTo (fz2.re * dstScale + dstOffsetX, fz2.im * dstScale + dstOffsetY)
-        dst.comp.moveTo (fz1.re * dstScale + dstOffsetX, fz1.im * dstScale + dstOffsetY)
-        dst.comp.lineTo (fz3.re * dstScale + dstOffsetX, fz3.im * dstScale + dstOffsetY)
+        dst.comp.moveTo (fz1.re, fz1.im)
+        dst.comp.lineTo (fz2.re, fz2.im)
+        dst.comp.moveTo (fz1.re, fz1.im)
+        dst.comp.lineTo (fz3.re, fz3.im)
         dst.comp.stroke ()
 
         const z1 = state.inputs[state.inputs.length - 1] as math.Complex,
         z2 = add(z1, complex(1, 0)) as math.Complex,
         z3 = add(z1, complex(0, 1)) as math.Complex
         src.comp.beginPath ()
-        src.comp.moveTo (z1.re * srcScale + srcOffsetX, z1.im * srcScale + srcOffsetY)
-        src.comp.lineTo (z2.re * srcScale + srcOffsetX, z2.im * srcScale + srcOffsetY)
-        src.comp.moveTo (z1.re * srcScale + srcOffsetX, z1.im * srcScale + srcOffsetY)
-        src.comp.lineTo (z3.re * srcScale + srcOffsetX, z3.im * srcScale + srcOffsetY)
+        src.comp.moveTo (z1.re, z1.im)
+        src.comp.lineTo (z2.re, z2.im)
+        src.comp.moveTo (z1.re, z1.im)
+        src.comp.lineTo (z3.re, z3.im)
         src.comp.stroke ()
     }
 }
