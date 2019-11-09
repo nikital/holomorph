@@ -6,15 +6,15 @@ interface State {
     fRaw: string
     // Derived from fRaw
     f: math.EvalFunction
-    df: math.EvalFunction | null
+    df?: math.EvalFunction
 
     inputs: (math.Complex | null)[]
     // Derived from inputs and fRaw
     outputs: (math.Complex | null)[]
 
-    mouseZ: math.Complex | null
+    mouseZ?: math.Complex
     // Derived from mouseZ and df
-    mouseFz: math.Complex | null
+    mouseFz?: math.Complex
     mouseD?: [math.Complex, math.Complex]
 
     scaleSrc: number
@@ -31,8 +31,6 @@ function initState(fRaw: string, scaleSrc: number, scaleDst: number): State {
         df: derivative (f, "z").compile (),
         inputs: [],
         outputs: [],
-        mouseZ: null,
-        mouseFz: null,
         scaleSrc, scaleDst,
         mouseDown: false,
     }
@@ -70,7 +68,7 @@ funcForm.onsubmit = (e) => {
 
         state.fRaw = fRaw
         state.f = f.compile ()
-        state.df = df ? df.compile () : null
+        state.df = df?.compile ()
 
         state.outputs = state.inputs.map ((z) => {
             if (z == null) return null
@@ -123,7 +121,7 @@ function addInput (z: math.Complex | null) {
     state.outputs.push (fz)
 }
 
-function setMouse (z: math.Complex | null) {
+function setMouse (z?: math.Complex) {
     state.mouseZ = z
     if (!z || !state.f) return
 
@@ -459,7 +457,7 @@ src.comp.canvas.onmousemove = (e) => {
 
 src.comp.canvas.onmouseout = (e) => {
     if (!(e.buttons & 1) || !state.mouseDown) {
-        state.mouseZ = null
+        setMouse (undefined)
         composite ()
         return
     }
