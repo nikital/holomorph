@@ -8,10 +8,12 @@
      body {
          display: grid;
          grid-template-columns: 50% 50%;
-         grid-template-rows: 100%;
          margin: 0;
          width: 100vw;
          height: 100vh;
+     }
+     .control {
+         grid-column: 1/3;
      }
      canvas {
          width: 100%;
@@ -19,6 +21,14 @@
      }
     </style>
     <body>
+        <div class="control">
+            <form id="func-form">
+                <label>f(z)=
+                    <input id="func">
+                </label>
+                <input type="submit" value="Set">
+            </form>
+        </div>
         <canvas id="src"></canvas>
         <canvas id="dst"></canvas>
         <script src="bundle.js"></script>

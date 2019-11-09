@@ -1,9 +1,6 @@
 import {parse, derivative, complex, add, multiply} from "mathjs"
 
-interface Graph {
-    comp: CanvasRenderingContext2D
-    graph: CanvasRenderingContext2D
-}
+//////////////////// STATE ////////////////////
 
 interface State {
     fRaw: string
@@ -17,6 +14,7 @@ interface State {
 
     mouseZ: math.Complex | null
     // Derived from mouseZ and df
+    mouseFz: math.Complex | null
     derivative: math.Complex | null
 
     scaleSrc: number
@@ -34,13 +32,67 @@ function initState(fRaw: string, scaleSrc: number, scaleDst: number): State {
         inputs: [],
         outputs: [],
         mouseZ: null,
+        mouseFz: null,
         derivative: null,
         scaleSrc, scaleDst,
         mouseDown: false,
     }
 }
 
-let state: State = initState ("e^z", 5, 50)
+const state: State = initState ("e^z", 5, 50)
+
+const funcForm = document.getElementById ("func-form") as HTMLFormElement
+const funcText = document.getElementById ("func") as HTMLInputElement
+
+funcText.value = state.fRaw
+funcForm.onsubmit = (e) => {
+    e.preventDefault ()
+    if (funcText.value == state.fRaw) return
+
+    state.fRaw = funcText.value
+
+    const f = parse(state.fRaw)
+    state.f = f.compile ()
+    state.df = derivative (f, "z").compile ()
+
+    state.outputs = state.inputs.map ((z) => {
+        if (z == null) return null
+        return state.f.evaluate ({z})
+    })
+
+    if (state.mouseZ) {
+        state.mouseFz = state.f.evaluate ({z: state.mouseZ})
+        state.derivative = state.df.evaluate ({z: state.mouseZ})
+    }
+
+    drawGraphFull ()
+}
+
+function addInput (z: math.Complex | null) {
+    if (z == null) {
+        state.inputs.push (null)
+        state.outputs.push (null)
+        return
+    }
+    const fz = state.f.evaluate ({z})
+    state.inputs.push (z)
+    state.outputs.push (fz)
+}
+
+function setMouse (z: math.Complex | null) {
+    state.mouseZ = z
+    if (!z) return
+
+    state.mouseFz = state.f.evaluate ({z})
+    state.derivative = state.df.evaluate ({z})
+}
+
+//////////////////// GRAPHICS ////////////////////
+
+interface Graph {
+    comp: CanvasRenderingContext2D
+    graph: CanvasRenderingContext2D
+}
 
 interface Style {
     style: string
@@ -78,29 +130,15 @@ const src = initCanvas ("src")
 const dst = initCanvas ("dst")
 
 function mouseToComplex (x: number, y: number): math.Complex {
+    const bounds = src.comp.canvas.getBoundingClientRect()
+
     const srcWidth = src.graph.canvas.width,
     srcHeight = src.graph.canvas.height,
-    srcOffsetX = srcWidth >> 1,
-    srcOffsetY = srcHeight >> 1,
+    srcOffsetX = (srcWidth >> 1) + bounds.x,
+    srcOffsetY = (srcHeight >> 1) + bounds.y,
     srcScale = srcWidth / state.scaleSrc
 
     return complex((x-srcOffsetX) / srcScale, (y-srcOffsetY) / -srcScale)
-}
-
-function addInput (z: math.Complex | null) {
-    if (z == null) {
-        state.inputs.push (null)
-        state.outputs.push (null)
-        return
-    }
-    const fz = state.f.evaluate ({z})
-    state.inputs.push (z)
-    state.outputs.push (fz)
-}
-
-interface Scale {
-    srcScale: number
-    dstScale: number
 }
 
 function setTransform () {
@@ -296,12 +334,12 @@ function composite () {
 
     setTransform ()
 
-    if (state.mouseZ && state.derivative)
+    if (state.mouseZ && state.mouseFz && state.derivative)
     {
         const z = state.mouseZ,
         z2 = add(z, complex(1, 0)) as math.Complex,
         z3 = add(z, complex(0, 1)) as math.Complex
-        const fz1 = state.df.evaluate({z}),
+        const fz1 = state.mouseFz,
         fz2 = add(fz1, state.derivative) as math.Complex,
         fz3 = add(fz1, multiply(state.derivative, complex(0, 1))) as math.Complex
 
@@ -351,8 +389,7 @@ src.comp.canvas.onmousemove = (e) => {
     const z = mouseToComplex (e.clientX, e.clientY)
 
     if (!(e.buttons & 1)) {
-        state.mouseZ = z
-        state.derivative = state.df.evaluate ({z})
+        setMouse (z)
 
         composite ()
     } else if (state.mouseDown) {
