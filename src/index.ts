@@ -45,7 +45,10 @@ srcZoomMinus= document.querySelector ("#zoom-src .m") as HTMLButtonElement,
 dstZoomPlus = document.querySelector ("#zoom-dst .p") as HTMLButtonElement,
 dstZoomMinus= document.querySelector ("#zoom-dst .m") as HTMLButtonElement,
 clear = document.getElementById ("clear") as HTMLButtonElement,
-msg = document.getElementById ("message") as HTMLSpanElement
+msg = document.getElementById ("message") as HTMLSpanElement,
+modal = document.querySelector ("aside") as HTMLElement,
+modalClose = document.querySelector ("aside button") as HTMLButtonElement,
+modalOpen = document.querySelector ("footer a") as HTMLAnchorElement
 
 funcText.value = state.fRaw
 msg.textContent = ""
@@ -108,6 +111,14 @@ clear.onclick = () => {
     state.inputs = []
     state.outputs = []
     drawGraphFull ()
+}
+
+modalClose.onclick = () => {
+    modal.style.display = "none"
+}
+modalOpen.onclick = (e) => {
+    e.preventDefault ()
+    modal.style.display = ""
 }
 
 function addInput (z: math.Complex | null) {
