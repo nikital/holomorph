@@ -75,7 +75,7 @@ funcForm.onsubmit = (e) => {
 
         state.outputs = state.inputs.map ((z) => {
             if (z == null) return null
-            return state.f.evaluate ({z})
+            return complex (state.f.evaluate ({z}))
         })
 
         if (state.mouseZ) {
@@ -127,7 +127,7 @@ function addInput (z: math.Complex | null) {
         state.outputs.push (null)
         return
     }
-    const fz = state.f.evaluate ({z})
+    const fz = complex (state.f.evaluate ({z}))
     state.inputs.push (z)
     state.outputs.push (fz)
 }
@@ -136,17 +136,17 @@ function setMouse (z?: math.Complex) {
     state.mouseZ = z
     if (!z || !state.f) return
 
-    state.mouseFz = state.f.evaluate ({z}) as math.Complex
+    state.mouseFz = complex (state.f.evaluate ({z}))
     if (state.df) {
-        let d = state.df.evaluate ({z})
+        let d = complex (state.df.evaluate ({z}))
         state.mouseD = [add (state.mouseFz, multiply (d, complex(1, 0))) as math.Complex,
                         add (state.mouseFz, multiply (d, complex(0, 1))) as math.Complex]
     } else {
         const STEP = 0.1
 
         // Approximate derivative numerically
-        const [vx, vy] = [state.f.evaluate({z: add (complex (STEP, 0), z)}),
-                          state.f.evaluate({z: add (complex (0, STEP), z)})],
+        const [vx, vy] = [complex (state.f.evaluate({z: add (complex (STEP, 0), z)})),
+                          complex (state.f.evaluate({z: add (complex (0, STEP), z)}))],
         [dx, dy] = [subtract (vx, state.mouseFz), subtract (vy, state.mouseFz)],
         [nx, ny] = [multiply (dx, 1/STEP), multiply (dy, 1/STEP)]
 
@@ -285,21 +285,21 @@ function drawGraphFull () {
     }
     for (let x = -gridElementsX; x <= gridElementsX; x++) {
         const z = complex (x*resolution, -gridElementsY*resolution),
-        fz = state.f.evaluate({z})
+        fz = complex (state.f.evaluate({z}))
         dst.graph.moveTo (fz.re, fz.im)
         for (let y = -gridElementsY*steps; y <= gridElementsY*steps; y++) {
             const z = complex (x*resolution, y*resolution/steps),
-            fz = state.f.evaluate({z})
+            fz = complex (state.f.evaluate({z}))
             dst.graph.lineTo (fz.re, fz.im)
         }
     }
     for (let y = -gridElementsY; y <= gridElementsY; y++) {
         const z = complex (-gridElementsX*resolution, y*resolution),
-        fz = state.f.evaluate({z})
+        fz = complex (state.f.evaluate({z}))
         dst.graph.moveTo (fz.re, fz.im)
         for (let x = -gridElementsX*steps; x <= gridElementsX*steps; x++) {
             const z = complex (x*resolution/steps, y*resolution),
-            fz = state.f.evaluate({z})
+            fz = complex (state.f.evaluate({z}))
             dst.graph.lineTo (fz.re, fz.im)
         }
     }
