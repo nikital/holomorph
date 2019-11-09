@@ -63,7 +63,7 @@ function mouseToComplex (x: number, y: number): math.Complex {
     srcOffsetY = srcHeight >> 1,
     srcScale = srcWidth / state.scaleSrc
 
-    return complex((x-srcOffsetX) / srcScale, (y-srcOffsetY) / srcScale)
+    return complex((x-srcOffsetX) / srcScale, (y-srcOffsetY) / -srcScale)
 }
 
 function addInput (z: math.Complex | null) {
@@ -97,13 +97,13 @@ function setTransform(): Scale {
     srcScale = srcWidth / state.scaleSrc,
     dstScale = dstWidth / state.scaleDst
 
-    src.graph.setTransform(srcScale, 0, 0, srcScale, srcOffsetX, srcOffsetY)
+    src.graph.setTransform(srcScale, 0, 0, -srcScale, srcOffsetX, srcOffsetY)
     src.graph.lineWidth = 1/srcScale
-    src.comp.setTransform(srcScale, 0, 0, srcScale, srcOffsetX, srcOffsetY)
+    src.comp.setTransform(srcScale, 0, 0, -srcScale, srcOffsetX, srcOffsetY)
     src.comp.lineWidth = 1/srcScale
-    dst.graph.setTransform(dstScale, 0, 0, dstScale, dstOffsetX, dstOffsetY)
+    dst.graph.setTransform(dstScale, 0, 0, -dstScale, dstOffsetX, dstOffsetY)
     dst.graph.lineWidth = 1/dstScale
-    dst.comp.setTransform(dstScale, 0, 0, dstScale, dstOffsetX, dstOffsetY)
+    dst.comp.setTransform(dstScale, 0, 0, -dstScale, dstOffsetX, dstOffsetY)
     dst.comp.lineWidth = 1/dstScale
 
     return {srcScale, dstScale}
