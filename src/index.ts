@@ -1,4 +1,4 @@
-import {parse, derivative, complex, add, multiply} from "mathjs"
+import {parse, derivative, complex, add, subtract, multiply} from "mathjs"
 
 //////////////////// STATE ////////////////////
 
@@ -6,7 +6,7 @@ interface State {
     fRaw: string
     // Derived from fRaw
     f: math.EvalFunction
-    df: math.EvalFunction
+    df: math.EvalFunction | null
 
     inputs: (math.Complex | null)[]
     // Derived from inputs and fRaw
@@ -15,7 +15,7 @@ interface State {
     mouseZ: math.Complex | null
     // Derived from mouseZ and df
     mouseFz: math.Complex | null
-    mouseDz: math.Complex | null
+    mouseD?: [math.Complex, math.Complex]
 
     scaleSrc: number
     scaleDst: number
@@ -33,7 +33,6 @@ function initState(fRaw: string, scaleSrc: number, scaleDst: number): State {
         outputs: [],
         mouseZ: null,
         mouseFz: null,
-        mouseDz: null,
         scaleSrc, scaleDst,
         mouseDown: false,
     }
@@ -47,30 +46,46 @@ srcZoomPlus = document.querySelector ("#zoom-src .p") as HTMLButtonElement,
 srcZoomMinus= document.querySelector ("#zoom-src .m") as HTMLButtonElement,
 dstZoomPlus = document.querySelector ("#zoom-dst .p") as HTMLButtonElement,
 dstZoomMinus= document.querySelector ("#zoom-dst .m") as HTMLButtonElement,
-clear = document.getElementById ("clear") as HTMLButtonElement
+clear = document.getElementById ("clear") as HTMLButtonElement,
+msg = document.getElementById ("message") as HTMLSpanElement
 
 funcText.value = state.fRaw
+msg.textContent = ""
+
 funcForm.onsubmit = (e) => {
     e.preventDefault ()
     if (funcText.value == state.fRaw) return
 
-    state.fRaw = funcText.value
+    let error = ""
+    try {
+        const fRaw = funcText.value,
+        f = parse(fRaw)
+        let df: math.MathNode | null = null
 
-    const f = parse(state.fRaw)
-    state.f = f.compile ()
-    state.df = derivative (f, "z").compile ()
+        try {
+            df = derivative (f, "z")
+        } catch {
+            error = "Warning: No derivative"
+        }
 
-    state.outputs = state.inputs.map ((z) => {
-        if (z == null) return null
-        return state.f.evaluate ({z})
-    })
+        state.fRaw = fRaw
+        state.f = f.compile ()
+        state.df = df ? df.compile () : null
 
-    if (state.mouseZ) {
-        state.mouseFz = state.f.evaluate ({z: state.mouseZ})
-        state.mouseDz = state.df.evaluate ({z: state.mouseZ})
+        state.outputs = state.inputs.map ((z) => {
+            if (z == null) return null
+            return state.f.evaluate ({z})
+        })
+
+        if (state.mouseZ) {
+            setMouse (state.mouseZ)
+        }
+
+        drawGraphFull ()
+    } catch {
+        error = "Error parsing function"
     }
-
-    drawGraphFull ()
+    msg.textContent = error
 }
 
 const SCALE = 1.3
@@ -110,10 +125,25 @@ function addInput (z: math.Complex | null) {
 
 function setMouse (z: math.Complex | null) {
     state.mouseZ = z
-    if (!z) return
+    if (!z || !state.f) return
 
-    state.mouseFz = state.f.evaluate ({z})
-    state.mouseDz = state.df.evaluate ({z})
+    state.mouseFz = state.f.evaluate ({z}) as math.Complex
+    if (state.df) {
+        let d = state.df.evaluate ({z})
+        state.mouseD = [add (state.mouseFz, multiply (d, complex(1, 0))) as math.Complex,
+                        add (state.mouseFz, multiply (d, complex(0, 1))) as math.Complex]
+    } else {
+        const STEP = 0.1
+
+        // Approximate derivative numerically
+        const [vx, vy] = [state.f.evaluate({z: add (complex (STEP, 0), z)}),
+                          state.f.evaluate({z: add (complex (0, STEP), z)})],
+        [dx, dy] = [subtract (vx, state.mouseFz), subtract (vy, state.mouseFz)],
+        [nx, ny] = [multiply (dx, 1/STEP), multiply (dy, 1/STEP)]
+
+        state.mouseD = [add (state.mouseFz, nx) as math.Complex,
+                        add (state.mouseFz, ny) as math.Complex]
+    }
 }
 
 //////////////////// GRAPHICS ////////////////////
@@ -363,14 +393,13 @@ function composite () {
 
     setTransform ()
 
-    if (state.mouseZ && state.mouseFz && state.mouseDz)
+    if (state.mouseZ && state.mouseFz && state.mouseD)
     {
         const z = state.mouseZ,
         z2 = add(z, complex(1, 0)) as math.Complex,
         z3 = add(z, complex(0, 1)) as math.Complex
         const fz1 = state.mouseFz,
-        fz2 = add(fz1, state.mouseDz) as math.Complex,
-        fz3 = add(fz1, multiply(state.mouseDz, complex(0, 1))) as math.Complex
+        [fz2, fz3] = state.mouseD
 
         setStyle(STYLE.dUp)
         src.comp.beginPath ()
