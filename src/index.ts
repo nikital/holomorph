@@ -15,7 +15,7 @@ interface State {
     mouseZ: math.Complex | null
     // Derived from mouseZ and df
     mouseFz: math.Complex | null
-    derivative: math.Complex | null
+    mouseDz: math.Complex | null
 
     scaleSrc: number
     scaleDst: number
@@ -33,7 +33,7 @@ function initState(fRaw: string, scaleSrc: number, scaleDst: number): State {
         outputs: [],
         mouseZ: null,
         mouseFz: null,
-        derivative: null,
+        mouseDz: null,
         scaleSrc, scaleDst,
         mouseDown: false,
     }
@@ -41,8 +41,13 @@ function initState(fRaw: string, scaleSrc: number, scaleDst: number): State {
 
 const state: State = initState ("e^z", 5, 50)
 
-const funcForm = document.getElementById ("func-form") as HTMLFormElement
-const funcText = document.getElementById ("func") as HTMLInputElement
+const funcForm = document.getElementById ("func-form") as HTMLFormElement,
+funcText = document.getElementById ("func") as HTMLInputElement,
+srcZoomPlus = document.querySelector ("#zoom-src .p") as HTMLButtonElement,
+srcZoomMinus= document.querySelector ("#zoom-src .m") as HTMLButtonElement,
+dstZoomPlus = document.querySelector ("#zoom-dst .p") as HTMLButtonElement,
+dstZoomMinus= document.querySelector ("#zoom-dst .m") as HTMLButtonElement,
+clear = document.getElementById ("clear") as HTMLButtonElement
 
 funcText.value = state.fRaw
 funcForm.onsubmit = (e) => {
@@ -62,9 +67,33 @@ funcForm.onsubmit = (e) => {
 
     if (state.mouseZ) {
         state.mouseFz = state.f.evaluate ({z: state.mouseZ})
-        state.derivative = state.df.evaluate ({z: state.mouseZ})
+        state.mouseDz = state.df.evaluate ({z: state.mouseZ})
     }
 
+    drawGraphFull ()
+}
+
+const SCALE = 1.3
+srcZoomPlus.onclick = () => {
+    state.scaleSrc /= SCALE
+    drawGraphFull ()
+}
+srcZoomMinus.onclick = () => {
+    state.scaleSrc *= SCALE
+    drawGraphFull ()
+}
+dstZoomPlus.onclick = () => {
+    state.scaleDst /= SCALE
+    drawGraphFull ()
+}
+dstZoomMinus.onclick = () => {
+    state.scaleDst *= SCALE
+    drawGraphFull ()
+}
+
+clear.onclick = () => {
+    state.inputs = []
+    state.outputs = []
     drawGraphFull ()
 }
 
@@ -84,7 +113,7 @@ function setMouse (z: math.Complex | null) {
     if (!z) return
 
     state.mouseFz = state.f.evaluate ({z})
-    state.derivative = state.df.evaluate ({z})
+    state.mouseDz = state.df.evaluate ({z})
 }
 
 //////////////////// GRAPHICS ////////////////////
@@ -191,7 +220,7 @@ function drawGraphFull () {
     src.graph.setTransform(1, 0, 0, 1, 0, 0)
     dst.graph.setTransform(1, 0, 0, 1, 0, 0)
     src.graph.clearRect (0, 0, srcWidth, srcHeight)
-    dst.graph.clearRect (0, 0, dstWidth, dstWidth)
+    dst.graph.clearRect (0, 0, dstWidth, dstHeight)
 
     setTransform ()
 
@@ -334,14 +363,14 @@ function composite () {
 
     setTransform ()
 
-    if (state.mouseZ && state.mouseFz && state.derivative)
+    if (state.mouseZ && state.mouseFz && state.mouseDz)
     {
         const z = state.mouseZ,
         z2 = add(z, complex(1, 0)) as math.Complex,
         z3 = add(z, complex(0, 1)) as math.Complex
         const fz1 = state.mouseFz,
-        fz2 = add(fz1, state.derivative) as math.Complex,
-        fz3 = add(fz1, multiply(state.derivative, complex(0, 1))) as math.Complex
+        fz2 = add(fz1, state.mouseDz) as math.Complex,
+        fz3 = add(fz1, multiply(state.mouseDz, complex(0, 1))) as math.Complex
 
         setStyle(STYLE.dUp)
         src.comp.beginPath ()
