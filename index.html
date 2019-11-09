@@ -11,6 +11,7 @@
          margin: 0;
          width: 100vw;
          height: 100vh;
+         font-family: sans;
      }
      canvas {
          width: 100%;
@@ -53,6 +54,12 @@
      #message {
          color: crimson;
      }
+     footer {
+         position: fixed;
+         bottom: 0;
+         right: 0;
+         margin: 2px;
+     }
     </style>
     <body>
         <canvas id="src"></canvas>
@@ -73,6 +80,10 @@
             <input type="submit" value="Set">
             <span id="message"></span>
         </form>
+        <footer>
+            copyright &copy 2019 Nikita Leshenko
+            <a href="#">HELP!?</a>
+        </footer>
         <script src="bundle.js"></script>
     </body>
 </html>
