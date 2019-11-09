@@ -141,6 +141,8 @@ function setStyle (s: Style) {
 }
 
 function drawGraphFull () {
+    if (!validateSize ()) return
+
     const srcWidth = src.graph.canvas.width,
     srcHeight = src.graph.canvas.height,
     dstWidth = dst.graph.canvas.width,
@@ -250,8 +252,8 @@ function drawGraphFull () {
 
 function drawGraphLast ()
 {
-    if (state.inputs.length < 2)
-        return
+    if (!validateSize ()) return
+    if (state.inputs.length < 2) return
 
     setTransform ()
     setStyle(STYLE.line)
@@ -277,6 +279,8 @@ function drawGraphLast ()
 }
 
 function composite () {
+    if (!validateSize ()) return
+
     const srcWidth = src.graph.canvas.width,
     srcHeight = src.graph.canvas.height,
     dstWidth = dst.graph.canvas.width,
@@ -324,6 +328,15 @@ function composite () {
     }
 }
 
+function validateSize (): boolean {
+    const bounds = src.comp.canvas.getBoundingClientRect ()
+    if (src.comp.canvas.width == Math.floor(bounds.width) &&
+        src.comp.canvas.height == Math.floor(bounds.height))
+        return true
+
+    resize ()
+    return false // Stop rendering
+}
 
 src.comp.canvas.onmousedown = (e) => {
     state.mouseDown = true
@@ -390,7 +403,7 @@ function resize () {
         g.graph.canvas.width = bounds.width;
         g.graph.canvas.height = bounds.height;
     })
-    drawGraphFull ()
+    requestAnimationFrame (drawGraphFull)
 }
 
 drawGraphFull ()
