@@ -14,6 +14,9 @@ interface State {
     inputs: (math.Complex | null)[]
     // Derived from inputs and fRaw
     outputs: (math.Complex | null)[]
+
+    mouseZ: math.Complex | null
+    // Derived from mouseZ and df
     derivative: math.Complex | null
 
     scaleSrc: number
@@ -30,6 +33,7 @@ function initState(fRaw: string, scaleSrc: number, scaleDst: number): State {
         df: derivative (f, "z").compile (),
         inputs: [],
         outputs: [],
+        mouseZ: null,
         derivative: null,
         scaleSrc, scaleDst,
         mouseDown: false,
@@ -87,14 +91,11 @@ function addInput (z: math.Complex | null) {
     if (z == null) {
         state.inputs.push (null)
         state.outputs.push (null)
-        state.derivative = null
         return
     }
     const fz = state.f.evaluate ({z})
-    const dz = state.df.evaluate ({z})
     state.inputs.push (z)
     state.outputs.push (fz)
-    state.derivative = dz
 }
 
 interface Scale {
@@ -291,18 +292,18 @@ function composite () {
 
     setTransform ()
 
-    if (state.derivative)
+    if (state.mouseZ && state.derivative)
     {
-        const z1 = state.inputs[state.inputs.length - 1] as math.Complex,
-        z2 = add(z1, complex(1, 0)) as math.Complex,
-        z3 = add(z1, complex(0, 1)) as math.Complex
-        const fz1 = state.outputs[state.outputs.length - 1] as math.Complex,
+        const z = state.mouseZ,
+        z2 = add(z, complex(1, 0)) as math.Complex,
+        z3 = add(z, complex(0, 1)) as math.Complex
+        const fz1 = state.df.evaluate({z}),
         fz2 = add(fz1, state.derivative) as math.Complex,
         fz3 = add(fz1, multiply(state.derivative, complex(0, 1))) as math.Complex
 
         setStyle(STYLE.dUp)
         src.comp.beginPath ()
-        src.comp.moveTo (z1.re, z1.im)
+        src.comp.moveTo (z.re, z.im)
         src.comp.lineTo (z2.re, z2.im)
         src.comp.stroke ()
         dst.comp.beginPath ()
@@ -312,7 +313,7 @@ function composite () {
 
         setStyle(STYLE.dRight)
         src.comp.beginPath ()
-        src.comp.moveTo (z1.re, z1.im)
+        src.comp.moveTo (z.re, z.im)
         src.comp.lineTo (z3.re, z3.im)
         src.comp.stroke ()
         dst.comp.beginPath ()
@@ -334,15 +335,26 @@ src.comp.canvas.onmousedown = (e) => {
 }
 
 src.comp.canvas.onmousemove = (e) => {
-    if (!(e.buttons & 1) || !state.mouseDown) return
     const z = mouseToComplex (e.clientX, e.clientY)
-    addInput (z)
 
-    drawGraphLast ()
+    if (!(e.buttons & 1)) {
+        state.mouseZ = z
+        state.derivative = state.df.evaluate ({z})
+
+        composite ()
+    } else if (state.mouseDown) {
+        addInput (z)
+
+        drawGraphLast ()
+    }
 }
 
 src.comp.canvas.onmouseout = (e) => {
-    if (!(e.buttons & 1) || !state.mouseDown) return
+    if (!(e.buttons & 1) || !state.mouseDown) {
+        state.mouseZ = null
+        composite ()
+        return
+    }
     addInput (null) // Break line
 }
 
