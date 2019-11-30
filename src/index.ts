@@ -73,10 +73,7 @@ funcForm.onsubmit = (e) => {
         state.f = f.compile ()
         state.df = df?.compile ()
 
-        state.outputs = state.inputs.map ((z) => {
-            if (z == null) return null
-            return complex (state.f.evaluate ({z}))
-        })
+        state.outputs = state.inputs.map (inputToOutput)
 
         if (state.mouseZ) {
             setMouse (state.mouseZ)
@@ -121,15 +118,27 @@ modalOpen.onclick = (e) => {
     modal.style.display = ""
 }
 
-function addInput (z: math.Complex | null) {
-    if (z == null) {
-        state.inputs.push (null)
-        state.outputs.push (null)
-        return
-    }
+function inputToOutput (z: math.Complex | null): math.Complex | null
+{
+    if (z == null) return null
+
     const fz = complex (state.f.evaluate ({z}))
+
+    if (!isFinite (fz.re) || !isFinite (fz.im)) return null
+
+    const norm = fz.re*fz.re + fz.im*fz.im
+    if (norm > 1e6) {
+        // Chrome doesn't render the entire path if one of the numbers it too
+        // large.
+        return multiply(fz, 1e6/norm) as math.Complex
+    }
+
+    return fz
+}
+
+function addInput (z: math.Complex | null) {
     state.inputs.push (z)
-    state.outputs.push (fz)
+    state.outputs.push (inputToOutput (z))
 }
 
 function setMouse (z?: math.Complex) {
