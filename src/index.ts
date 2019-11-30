@@ -45,6 +45,8 @@ srcZoomMinus= document.querySelector ("#zoom-src .m") as HTMLButtonElement,
 dstZoomPlus = document.querySelector ("#zoom-dst .p") as HTMLButtonElement,
 dstZoomMinus= document.querySelector ("#zoom-dst .m") as HTMLButtonElement,
 clear = document.getElementById ("clear") as HTMLButtonElement,
+circle = document.getElementById ("circle") as HTMLButtonElement,
+pacman = document.getElementById ("pacman") as HTMLButtonElement,
 msg = document.getElementById ("message") as HTMLSpanElement,
 modal = document.querySelector ("aside") as HTMLElement,
 modalClose = document.querySelector ("aside button") as HTMLButtonElement,
@@ -107,6 +109,46 @@ dstZoomMinus.onclick = () => {
 clear.onclick = () => {
     state.inputs = []
     state.outputs = []
+
+    drawGraphFull ()
+}
+circle.onclick = () => {
+    state.inputs = []
+    state.outputs = []
+
+    const steps = 300;
+    for (let i = 0; i <= steps; i++) {
+        const angle = Math.PI * 2 * i / steps
+        addInput(complex(Math.cos(angle), Math.sin(angle)))
+    }
+    addInput(null)
+    for (let i = 0; i <= steps; i++) {
+        const y = 2*i / steps - 1
+        for (let j = 0; j <= steps; j++) {
+            const x = 2*j / steps - 1
+            if (x*x + y*y <= 1)
+                addInput(complex(x, y))
+        }
+        addInput(null)
+    }
+    addInput(null)
+
+    drawGraphFull ()
+}
+pacman.onclick = () => {
+    state.inputs = []
+    state.outputs = []
+
+    const steps = 300;
+    for (let i = 0; i <= steps; i++) {
+        const angle = (Math.PI*3/2) * i / steps + Math.PI/4
+        for (let j = 0; j <= steps; j++) {
+            const r = (j/steps)*(j/steps)*100
+            addInput(complex(r*Math.cos(angle), r*Math.sin(angle)))
+        }
+    }
+    addInput(null)
+
     drawGraphFull ()
 }
 
